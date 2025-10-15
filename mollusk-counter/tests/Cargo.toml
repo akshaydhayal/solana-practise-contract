@@ -1,0 +1,16 @@
+cargo-features = ["edition2024"]
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+mollusk-svm = "0.5.1"
+solana-sdk = "2.3.1"
+
+[dev-dependencies]
+solana-account = "2.2.1"
+solana-feature-set = "2.2.5"
+solana-precompiles = "2.2.2"
+solana-program = "2.3.0"
+solana-pubkey = "2.3.0"

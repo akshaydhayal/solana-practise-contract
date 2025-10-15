@@ -1,0 +1,171 @@
+{
+  "address": "CUkzBSEdfAxfCLH1kAXLdjWhtcWRyf89ExsukP3VSgCZ",
+  "metadata": {
+    "name": "anchor_intro",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "delete_bio",
+      "discriminator": [
+        194,
+        242,
+        73,
+        44,
+        249,
+        19,
+        229,
+        185
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "signer": true
+        },
+        {
+          "name": "intro_acc",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_intro",
+      "discriminator": [
+        199,
+        170,
+        153,
+        85,
+        244,
+        173,
+        55,
+        112
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "intro_acc",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  116,
+                  114,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "bio",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "update_intro",
+      "discriminator": [
+        143,
+        69,
+        148,
+        242,
+        60,
+        237,
+        197,
+        171
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "signer": true
+        },
+        {
+          "name": "intro_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  116,
+                  114,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_bio",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Intro",
+      "discriminator": [
+        141,
+        110,
+        63,
+        51,
+        218,
+        219,
+        204,
+        85
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "Intro",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "bio",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}
