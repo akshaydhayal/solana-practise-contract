@@ -1,0 +1,15 @@
+[package]
+name = "token-management"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type=["cdylib","lib"]
+
+[dependencies]
+borsh = {version="1.5.7" , features=["derive"]}
+# mpl-token-metadata = {version="5.1.1", features=["no-entrypoint"]}
+mpl-token-metadata = "5.1.1"
+solana-program = "2.3.0"
+spl-associated-token-account = {version="7.0.0", features=["no-entrypoint"]}
+spl-token = {version="8.0.0", features = ["no-entrypoint"]}
