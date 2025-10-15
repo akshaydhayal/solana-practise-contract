@@ -1,0 +1,14 @@
+cargo-features = ["edition2024"]
+[package]
+name = "pinocchio1"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# borsh = {version="1.5.7", features=["derive"]}
+pinocchio = "0.9.1"
+pinocchio-system = "0.3.0"
+pinocchio-token = "0.4.0"

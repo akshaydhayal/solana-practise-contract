@@ -1,0 +1,48 @@
+{
+  "version": "0.1.0",
+  "name": "pinocchio_crud",
+  "instructions": [
+    {
+      "name": "Create",
+      "accounts": [],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 0
+      }
+    },
+    {
+      "name": "Update",
+      "accounts": [],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 1
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "User",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key",
+            "type": "publicKey"
+          },
+          {
+            "name": "val",
+            "type": "u32"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "origin": "shank",
+    "address": "HTHYhmbNLvZmFJQD65icHSoSHr1rp3G7ejJQD7iYc6mM",
+    "binaryVersion": "0.4.5",
+    "libVersion": "0.4.5"
+  }
+}

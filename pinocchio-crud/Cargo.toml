@@ -1,0 +1,18 @@
+# cargo-features = ["edition2024"]
+[package]
+name = "pinocchio-crud"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type=["cdylib","lib"]
+
+[dependencies]
+borsh = {version="1.5.7", features=["derive"]}
+pinocchio = "0.9.2"
+pinocchio-pubkey = "0.3.0"
+shank = "0.4.5"
+# shank-cli = "0.4.5"
+
+[build-dependencies]
+shank-cli = "0.4"
