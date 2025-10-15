@@ -1,0 +1,10 @@
+[package]
+name = "token22"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["lib","cdylib"]
+
+[dependencies]
+spl-token-2022 = "9.0.0"

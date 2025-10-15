@@ -1,0 +1,1 @@
+pub const VAULT_SPACE:usize=32+4;
