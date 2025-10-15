@@ -1,0 +1,174 @@
+1. Account Creation isnide contracts:
+    - we can create normal data ccounts also inside the contract but the account that is created 
+        has to sign the tx from client as account creation needs signing. we create nroaml account using invoke only.
+    - pda accounts can be created inside the contarcts and they don't need signing, just seeds act
+         as signed. and we use invoke_signed for it
+
+2. Account vs Keypair
+    - You run Keypair.generate() 1000 times → you now have 1000 public keys.
+    - But unless you call create_account (or some program instruction that allocates accounts), none of them exist on Solana.
+    - Real life Analogy: 
+        - Keypair.generate() → Like you buying a new locker at a bank. You get the locker number (public key) and locker key (private key).
+        - But at this stage, it’s just a key in your pocket — no locker yet.
+        - system_instruction::create_account → You go to the bank, pay money, and the bank actually
+             installs that locker for you, with storage capacity, assigned ownership, etc.
+
+3. Owner of an Associated Token Account (ATA)
+    The account’s owner field (AccountInfo.owner) is always set to the SPL Token Program ID (Tokenkeg…).
+    The Associated Token Account Program only exists to derive and create the ATA at the correct PDA address.
+    Once created, the ATA is just a regular SPL Token account (with owner = Token Program).
+
+    🔹 How it works
+        An ATA is always deterministically derived using:
+        seeds = [
+            wallet_address,       // the owner of the tokens
+            mint_address          // the token mint
+            TOKEN_PROGRAM_ID,     // the SPL Token program
+        ]
+        It derives the PDA = ATA address.
+        It creates the account and initializes it under the Token Program.
+        After creation, the Token Program manages it (balances, transfers, authority checks).
+
+    ✅ So final answer:
+    Owner of ATA = SPL Token Program
+    ATA Program = helper to create the ATA PDA deterministically
+    👉 Analogy:
+    ATA Program = Bank employee that opens your account.
+    Token Program = The actual bank system that owns and manages all accounts
+
+
+4. 🔹 Token Mint account
+        A mint is a normal Solana account that stores the Mint struct (decimals, supply, mint authority, etc.).
+        It is not a signer itself — meaning:
+        You don’t use the mint’s “private key” to sign transactions.
+        Instead, the mint authority (a wallet or PDA you set during initialization) signs when minting new tokens.
+        When you create a mint with Keypair.generate(), you need that keypair only to pay for account creation.
+        After initialization, the mint account just sits on-chain holding data.
+        ✅ So: A token mint account is a normal account, but you don’t treat its keypair as something to sign with — it’s just a data account owned by the Token Program.
+
+    🔹 Associated Token Account (ATA)
+        An ATA is a PDA (Program Derived Account).
+        Address is deterministic (wallet + mint).
+        No private key exists for the ATA.
+        It stores the TokenAccount struct (balance, mint, owner).
+        SPL Token program owns it.
+
+5. try_from_slice_unchecked
+    Why this matters in Solana
+    When you create an account with create_account, you must over-allocate space for the struct’s future growth.
+    That means:
+    At init, the struct uses fewer bytes.
+    Later (e.g., after pushing proposals), it uses more.
+    So padding at the end is intentional.
+
+    That’s why in Solana programs, devs almost always use try_from_slice_unchecked for account deserialization.
+    - Use try_from_slice_unchecked for accounts (PDA, user state) → since accounts are over-allocated.
+    - Use try_from_slice for instruction data or tightly-packed buffers → where there’s no padding.
+
+
+6. if we burns a specific mint token from an associated token account, the ata user tokens are reduced and 
+    burned, but the supply inside the mint account is also rediuced and burned. burn is like removing 
+    tokens from the entire mint. they are literally removed from circulation.
+    burned tokens can never be recovered hence.
+
+7. Borsh serialisation
+    How BORSH works
+    In Rust, when you #[derive(BorshSerialize, BorshDeserialize)], the macro literally serializes the fields in the order they appear in the struct definition.
+    In JS/TS (borsh-js), the schema you provide is just a description of the struct → and it also expects fields in the same order.
+    There’s no “field name lookup” or “alphabetical sorting” at serialization time.
+    BORSH is not like JSON or Protobuf — it’s a pure positional binary format, no field tags.
+    Order must match exactly between Rust struct definition and JS schema.
+
+    Even if fields have the same names and types, a different order = wrong decoding.
+    Adding/removing fields also breaks deserialization unless both sides are updated.
+
+    Example
+    Suppose Rust struct is:
+        #[derive(BorshSerialize, BorshDeserialize)]
+        struct TokenAccount {
+            mint: [u8; 32],
+            owner: [u8; 32],
+            amount: u64,
+        }
+
+    And JS schema is:
+        let schema = {
+        struct: {
+            owner: { array: { type: "u8", len: 32 } },  // <== swapped order
+            mint: { array: { type: "u8", len: 32 } },
+            amount: "u64",
+        }
+        };
+    If you try to deserialize:
+    First 32 bytes will be wrongly interpreted as owner instead of mint.
+    Next 32 bytes will be read as mint (but actually are owner).
+    amount will still work, but the two fields are swapped in values.
+    So data becomes garbled.
+
+    🔹 Example to prove it
+    Rust struct:
+        #[derive(BorshSerialize, BorshDeserialize, Debug)]
+        struct Example {
+            a: u32,
+            b: u32,
+        }
+    If you serialize Example { a: 1, b: 2 } →
+    Hex output:
+    01 00 00 00   // a = 1 (u32 little-endian)
+    02 00 00 00   // b = 2
+
+    If you swap order in struct:
+        struct Example {
+            b: u32,
+            a: u32,
+        }
+    Same data (a=1, b=2) serializes to:
+    02 00 00 00   // b first
+    01 00 00 00   // a second
+
+
+    ⚡ You can see: same field names, same values, but order changes the bytes.
+    So if your JS schema expects a first but Rust sends b first → deserialization breaks.
+
+    ✅ Bottom line: BORSH is strictly field-order dependent.
+    It does not sort, reorder, or align alphabetically.
+
+    The names are only for humans / schema mapping in your code.
+    The binary buffer has no field names — just raw bytes written in the order of the struct fields.
+    So during deserialization, the schema must match the same field order and types, otherwise it will interpret the wrong bytes.
+
+
+
+8. Get any program bin ary file:
+    solana program dump metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s mpl_token_metadata.so
+    Command: solana program dump <PROGRAM_ID> <OUTPUT_FILE>
+    What it does
+    solana program dump tells the Solana CLI to fetch the deployed on-chain program’s bytecode (ELF file) from the cluster.
+    It then writes that bytecode into a local .so file.
+
+    In tests, you must deploy the Metaplex program into LiteSVM
+    LiteSVM has SPL Token & ATA built in, but not the Metaplex metadata program. If you CPI into metaqbxx… without loading its .so, the VM can’t execute it and you’ll see errors like this (often surfacing as invalid instruction data).
+    Add this in your test setup:
+        import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+        // path to your compiled mpl_token_metadata .so
+        svm.addProgramFromFile(
+        new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID),
+        "<path>/mpl_token_metadata.so"
+        );
+    (If you don’t have the binary in your SVM, that CPI can’t succeed—mock or skip that test.)
+
+
+9. A mints Associated token account owner can be a PDA or a normal account both. but in client side
+    mention it explicityy during deriving ata public key. like allowOwnerOffcurver is set true for pda:
+    - vaultMintAta = spl.getAssociatedTokenAddressSync(mintAcc.publicKey,vaultPda,true);
+
+
+10. When accounts must be marked as Writable :
+    If account data will change → must be writable.
+    If lamports will change → must be writable.
+    If the account is only being read / verified → can stay readonly.
+    If an account needs to sign (prove ownership / authority) → must be marked as a 
+    signer (independent of writable).
+
+11. mint accounts owner should be spl program and not system program if we want to 
+    initialize them as spl program is resposnible for modifying them during intialisation.

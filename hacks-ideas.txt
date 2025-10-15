@@ -1,0 +1,19 @@
+Hack Ideas for Vechain:
+X to Earn
+0. Help to Earn(people post for helps and other people helps it)- This basic MVP can be that
+    paid quora or stack overflow, that users reply to ep and then get paid or a time.fun 
+1. Review to earn
+2. Steps to earn
+3. Learn to Earn(get nft or tokens for learning)
+4. fitness misison, do activities to get rewards like Cudis rewards and cudis fitnedd missions
+5. Work to earn , like it reards people who work more on wakatime, for develoepr mostly
+
+Humanity ideas:
+1. Cradon credits to earn(use sustainable energy to earn)
+2. Sustainbel energy marketplace like UEI(2 proejcts, maketplace, and laedger)
+
+Tooling chain idea:
+1. DNS for VeeChain to get basic info
+2. Human Readvle exploreres
+3. Gitcoin Passport for auth for veechain
+4. Can build a superteam earn like platform for bounties and works 

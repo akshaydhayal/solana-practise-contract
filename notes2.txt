@@ -1,0 +1,143 @@
+1. try to create instruction manully rather than using instrcution builder functions like 
+    create account and transfer 
+
+2. learn about this next_Account_info implementtaion in detail:
+    pub fn next_account_info<'a, 'b, I: Iterator<Item = &'a AccountInfo<'b>>>(
+        iter: &mut I,) -> Result<I::Item, ProgramError> {
+        
+        iter.next().ok_or(ProgramError::NotEnoughAccountKeys)
+    }
+3. what this .into does to error:
+    return Err(StakeError::WrongSystemProgramProvided.into());
+
+4. try reallocation and deleteion stake pda account in this
+
+5. understand this, hat is this Refmut used a lot
+        pub fn try_borrow_mut_lamports(&self) -> Result<RefMut<&'a mut u64>, ProgramError> {
+        self.lamports
+            .try_borrow_mut()
+            .map_err(|_| ProgramError::AccountBorrowFailed)
+    }
+
+6. read about clock and time in solana
+
+7. try to implement find program adddress and create program address
+
+8.state.rs(17, 1): an implementation of `PartialEq` might be missing for `state::StakeState`
+
+9. Invariants rule in program
+
+
+10. Error: Reached maximum depth for account resolution anchor
+        // Employee account seeds depend on user
+        #[account(init_if_needed, payer=user, space=8+Employee::INIT_SPACE, 
+            seeds=[b"employee", user.key.as_ref()],bump)]
+        pub employee:Account<'info, Employee>,
+
+        // But vesting_account seeds depend on employee.employer
+        #[account(mut, seeds=[b"vesting",employee.employer.key().as_ref()],bump)]
+        pub vesting_account:Account<'info, VestingAccount>,
+
+    The problem is that you're trying to access employee.employer.key() in the vesting_account 
+    seeds, but the employee account uses init_if_needed, meaning it might not exist yet. When the 
+    employee account doesn't exist, Anchor can't read its employer field to resolve the vesting_account seeds.
+
+    But this is corerct, employee account exists always and vesting account can use employee account
+        #[account(mut, seeds=[b"employee", user.key.as_ref()], bump)]
+        pub employee:Account<'info, Employee>,
+
+        // #[account(seeds=[b"vesting",company_name.as_bytes()],bump)]
+        #[account(seeds=[b"vesting",employee.employer.key().as_ref()],bump)]
+        pub vesting_account:Account<'info, VestingAccount>,
+
+
+
+Important learnings:
+1. Compute units saved in using Pubkey::create_program_address() rather using 
+    Pubkey::find_program_address for calculating pda address. just bump will be given by client to 
+    find the address instead of finding it on chain.
+  // let (stake_derived_pda,bump)=Pubkey::find_program_address(seeds,program_id);
+    let stake_derived_pda=Pubkey::create_program_address(seeds_with_bump,program_id)?;
+
+2. seed accounts:
+ -  A seeded account is deterministically serived from base pubkey, seed and owner:
+ -  seeded account address = Pubkey::create_with_seed(base_pubkey, seed, owner_program_id)
+ - diff b/w pda and seeded account
+    Feature	    PDA (find_program_address)	                    create_with_seed
+    Space	    Ed25519 Off-curve (no private key exists)	ed25519 On-curve (valid pubkey, private key could exist)
+    Signing	    Authorized by program with invoke_signed	Requires base pubkey to sign
+    Owner	    Usually your program	                    Set at creation (could be your program too)
+    Use case	Program accounts that program signs for	    System-owned deterministic accounts tied to a base wallet
+    Security	No external entity can "own"	            Base wallet always needed
+
+    - Use cases of seeded accounts:
+        1. Wallet-controlled sub-accounts
+            - A wallet can create multiple deterministic sub-accounts using the same base and different seeds.
+            - User wants to keep different “buckets” for tokens, data, or escrow, but doesn’t want to track random pubkeys.
+            - Seeds like "savings", "trading", "fees" give deterministic addresses.
+        2. Programs that want deterministic user-owned accounts
+            - Some programs don’t want to “own” your account (like PDAs do). They want you to own it but still know where to look for it.
+            - A game wants players to have “player state” accounts.
+            - Instead of using PDAs (program-owned), it uses create_with_seed tied to the user’s wallet. That way, only the user can authorize changes.
+        3. Custodial or exchange deposit addresses
+            - Centralized exchanges sometimes want to assign each user a unique, deterministic deposit address.
+            - Instead of generating thousands of new keypairs, they can use create_with_seed(base=ExchangeWallet, seed=UserID, owner=SystemProgram).
+            - Then, the exchange can always recover all user deposit accounts by regenerating addresses.
+            - Funds can be swept with transfer_with_seed, authorized by the exchange’s base wallet.
+
+    When not to use seeded aaccount and use PDA:
+    - when we want a account to follow some program logic and then we use pda and not seed accounts.
+    - Like in a stake program, if we want to put this logic, that whenever user unstaked amount, he should 
+      be allowed to withdraw the funds after 24 hours only. this logic can be forced to pda and not seeded 
+      accounts as user have full authority for seeded accounts.
+
+3. If we tranfer all lamports from a pda to delete it, then it automatically owner is assigned
+     to system program and its data size it also gets to 0 without explicityly setting and account is deleted.
+     But explicityly do i your program also these 2 things.Set len to 0 and assign owenr to system program.
+
+4. Get account size for creating new account like this:
+    if we want to create a pda account storing this User data struct type, then we convert to a bytes vector and find len 
+        #[derive(BorshSerialize)]
+        pub struct User{
+            name:String,
+            likes:Vec<String>
+        }
+        let user=User{
+            name:"Akshay".to_string(),
+            likes:vec!["a".to_string(),"b".to_string()]
+        };
+        let user_data_len=borsh::to_vec(&user)?.len();
+
+5. 🔹 General Best Practices in Solana Math
+        - Always use u128 for intermediate results
+            let value = (a as u128 * c as u128) / (b as u128);
+            let result = value as u64; // downcast only at the end
+        - Order of operations matters
+            Avoid a/b*c. Do (a*c)/b.
+        - Handle rounding explicitly
+            By default, integer division truncates (rounds down).
+            If you want round up, do:
+            let result = (a * c + b - 1) / b; // ceiling division
+        - Avoid floats completely
+            Floats are not deterministic across platforms.
+            Always stick to integer math.
+
+6. Amm create pool instruction took : compute_units_consumed: 65267, try to use pinocchi for this and see the difference
+
+
+
+
+-- Projects ideas:
+1. Build a token creator like pump.fun and integrate with raydium,drift,orca for liquity to have swaps
+2. Cloud based wallet like tiplink that handles private key management(MCP)
+3. Indexing type project
+
+
+Learnings to do : 
+0. Anchor 
+1. Helius Frontend series
+2. Solana 2023 bootcampt(defi and arbitrage) 
+3. Solana 2024 bootcamp projects()
+4. Pinocchio
+5. Private key management(MPC)
+6. Mollusk testing
